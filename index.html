@@ -1,1 +1,324 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMI Calculator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    color: #0A4A6E;
+    background-color: #F8F8F8;
+  }
 
+  .main-box {
+    width: 100%;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .container {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* Input area */
+  .inputs {
+    flex: 1;
+    min-width: 200px;
+    max-width: 250px;
+  }
+  .inputs label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  .inputs input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #0A4A6E;
+    color: #0A4A6E;
+    box-sizing: border-box;
+  }
+
+  /* BMI display area */
+  .bmi-panel {
+    flex: 0 0 auto;
+    padding: 15px 20px;
+    text-align: left;
+  }
+  .bmi-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bmi-box {
+    padding: 5px 15px;
+    border-radius: 8px;
+    color: white;
+    font-size: 3rem;
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+    transition: color 0.5s ease;
+  }
+
+  /* BMI number colors */
+  .bmi-low { color: orange !important; }
+  .bmi-normal { color: green !important; }
+  .bmi-overweight { color: red !important; }
+  .bmi-obese { color: darkred !important; }
+
+  /* Norms box */
+  .norms {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    border: 1px solid #0A4A6E;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f4fafd;
+    min-width: 220px;
+    max-width: 250px;
+  }
+  .norms h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  .norm-item {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  /* Table styles */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    color: #0A4A6E;
+  }
+  th, td {
+    border: 1px solid #0A4A6E;
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+  th {
+    background-color: #e1f0f7;
+  }
+
+  .bmi-low-table { color: orange; }
+  .bmi-normal-table { color: green; }
+  .bmi-overweight-table { color: red; }
+  .bmi-obese-table { color: darkred; }
+
+  /* Blinking highlight */
+  .blink {
+    animation: blinkAnim 1s infinite;
+  }
+  @keyframes blinkAnim {
+    0% { background-color: yellow; }
+    50% { background-color: transparent; }
+    100% { background-color: yellow; }
+  }
+</style>
+</head>
+<body>
+
+<div class="main-box">
+  <div class="container">
+    <!-- Inputs -->
+    <div class="inputs">
+      <label for="height">სიმაღლე (სმ):</label>
+      <input type="number" id="height" placeholder="მაგ. 170" />
+
+      <label for="weight">წონა (კგ):</label>
+      <input type="number" id="weight" placeholder="მაგ. 70" />
+    </div>
+
+    <!-- BMI Panel -->
+    <div class="bmi-panel">
+      <div class="bmi-label">
+        პაციენტის BMI:
+        <span class="bmi-box" id="bmiValue"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Norms -->
+  <div class="norms">
+    <h3>ნორმები</h3>
+    <div class="norm-item" style="color: orange;">წონის დეფიციტი:  < 18.4 </div>
+    <div class="norm-item" style="color: green;">ნორმალური წონა: 18.5 – 24.9</div>
+    <div class="norm-item" style="color: red;">ჭარბი წონა: 25 – 29.9</div>
+    <div class="norm-item" style="color: darkred;">სიმსუქნე: 30 ></div>
+  </div>
+
+  <!-- Table -->
+  <table id="bmiTable" aria-label="BMI Table">
+    <thead>
+      <tr>
+        <th>სიმაღლე \ წონა</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  const heightInput = document.getElementById('height');
+  const weightInput = document.getElementById('weight');
+  const bmiValueSpan = document.getElementById('bmiValue');
+
+  let tableCells = {};
+
+  function getBMITextClass(bmi) {
+    if (bmi < 18.5) return 'bmi-low';
+    else if (bmi >= 18.5 && bmi < 25) return 'bmi-normal';
+    else if (bmi >= 25 && bmi < 30) return 'bmi-overweight';
+    else return 'bmi-obese';
+  }
+  function getBMITableClass(bmi) {
+    if (bmi < 18.5) return 'bmi-low-table';
+    else if (bmi >= 18.5 && bmi < 25) return 'bmi-normal-table';
+    else if (bmi >= 25 && bmi < 30) return 'bmi-overweight-table';
+    else return 'bmi-obese-table';
+  }
+
+  function calculateBMI() {
+    const height = parseFloat(heightInput.value);
+    const weight = parseFloat(weightInput.value);
+
+    // Remove blinking from all cells
+    document.querySelectorAll('.blink').forEach(cell => cell.classList.remove('blink'));
+
+    if (height > 0 && weight > 0) {
+      const heightMeters = height / 100;
+      const bmi = weight / (heightMeters * heightMeters);
+      bmiValueSpan.textContent = bmi.toFixed(1);
+      bmiValueSpan.className = 'bmi-box ' + getBMITextClass(bmi);
+
+      // Blink the correct table cell if it exists
+      if (tableCells[height] && tableCells[height][weight]) {
+        tableCells[height][weight].classList.add('blink');
+      }
+    } else {
+      bmiValueSpan.textContent = '';
+      bmiValueSpan.className = 'bmi-box';
+    }
+  }
+
+let animationFrameId = null;
+
+function animateBMI(targetBmi) {
+  let start = null;
+  const duration = 1000; // animation duration in ms
+  const startBmi = 0;
+
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    const progress = timestamp - start;
+    let currentBmi = startBmi + (targetBmi - startBmi) * (progress / duration);
+    if (currentBmi > targetBmi) currentBmi = targetBmi;
+
+    bmiValueSpan.textContent = currentBmi.toFixed(1);
+    bmiValueSpan.className = 'bmi-box ' + getBMITextClass(currentBmi);
+
+    if (progress < duration) {
+      animationFrameId = requestAnimationFrame(step);
+    } else {
+      // Animation done, set final value exactly
+      bmiValueSpan.textContent = targetBmi.toFixed(1);
+      bmiValueSpan.className = 'bmi-box ' + getBMITextClass(targetBmi);
+    }
+  }
+
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  animationFrameId = requestAnimationFrame(step);
+}
+
+function calculateBMI() {
+  const height = parseFloat(heightInput.value);
+  const weight = parseFloat(weightInput.value);
+
+  // Remove blinking from all cells
+  document.querySelectorAll('.blink').forEach(cell => cell.classList.remove('blink'));
+
+  if (height > 0 && weight > 0) {
+    const heightMeters = height / 100;
+    const bmi = weight / (heightMeters * heightMeters);
+
+    // Animate the BMI number from 0 to bmi
+    animateBMI(bmi);
+
+    // Blink the correct table cell if it exists
+    if (tableCells[height] && tableCells[height][weight]) {
+      tableCells[height][weight].classList.add('blink');
+    }
+  } else {
+    if(animationFrameId) cancelAnimationFrame(animationFrameId);
+    bmiValueSpan.textContent = '';
+    bmiValueSpan.className = 'bmi-box';
+  }
+}
+
+  heightInput.addEventListener('input', calculateBMI);
+  weightInput.addEventListener('input', calculateBMI);
+
+  // Generate BMI table
+  const bmiTable = document.getElementById('bmiTable');
+  const tbody = bmiTable.querySelector('tbody');
+  const theadRow = bmiTable.querySelector('thead tr');
+
+  const heights = [];
+  for (let h = 160; h <= 200; h++) heights.push(h);
+  const weights = [];
+  for (let w = 50; w <= 100; w++) weights.push(w);
+
+  // Header
+  weights.forEach(w => {
+    const th = document.createElement('th');
+    th.textContent = w + ' კგ';
+    theadRow.appendChild(th);
+  });
+
+  // Rows
+  heights.forEach(h => {
+    tableCells[h] = {};
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = h + ' სმ';
+    tr.appendChild(th);
+
+    weights.forEach(w => {
+      const td = document.createElement('td');
+      const heightMeters = h / 100;
+      const bmi = w / (heightMeters * heightMeters);
+      td.textContent = bmi.toFixed(1);
+      td.className = getBMITableClass(bmi);
+      tableCells[h][w] = td; // store reference for blinking
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+</script>
+
+</body>
+</html>
